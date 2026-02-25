@@ -97,19 +97,40 @@ const ColorRow = ({
 
 const MobilePreview = ({ colors, focusedField }: { colors: Partial<CompanyColors>, focusedField: string | null }) => {
   const [view, setView] = useState<'client' | 'dashboard'>('client');
+  const getBrightness = (hex: string) => {
+    const rgb = hex.replace('#', '').match(/.{1,2}/g)?.map(x => parseInt(x, 16));
+    if (!rgb || rgb.length !== 3) return 255;
+    return (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
+  };
+
+  const currentBg = colors.background || '#0D0D0D';
+  const isBgDark = getBrightness(currentBg) <= 128;
 
   const c = {
-    bg: colors.background || '#090909',
-    surface: colors.surface || '#1a1a1a',
-    primary: colors.primary_color || '#007AFF',
-    secondary: colors.secondary_color || '#1E90FF',
-    accent: colors.accent || '#FFFFFF',
-    title: colors.title || '#ffffff',
-    text: colors.text_color || '#ffffff',
-    textDim: colors.text_dim || 'rgba(255,255,255,0.6)',
-    btnText: colors.button_text || '#ffffff',
-    form: colors.form_bg || '#262626'
+    bg: currentBg,
+    surface: colors.surface || (isBgDark ? '#1A1A1A' : '#F8F9FC'),
+    primary: colors.primary_color || (isBgDark ? '#C1B373' : '#007AFF'),
+    secondary: colors.secondary_color || (isBgDark ? '#C1B373' : '#007AFF'),
+    accent: colors.accent || (isBgDark ? '#F5EECC' : '#007AFF'),
+    title: colors.title || (isBgDark ? '#FFFFFF' : '#111827'),
+    text: colors.text_color || (isBgDark ? '#E5E7EB' : '#374151'),
+    textDim: colors.text_dim || (isBgDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'),
+    btnText: colors.button_text || (getBrightness(colors.secondary_color || '#c1b373') > 165 ? '#000000' : '#FFFFFF'),
+    form: colors.form_bg || (isBgDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF')
   };
+
+  // Add contrast guards for Title and Text if they are too close to background
+  if (Math.abs(getBrightness(c.title) - getBrightness(c.bg)) < 40) {
+    c.title = isBgDark ? '#FFFFFF' : '#000000';
+  }
+  if (Math.abs(getBrightness(c.text) - getBrightness(c.bg)) < 40) {
+    c.text = isBgDark ? '#FFFFFF' : '#000000';
+  }
+  // Guard for button text
+  const secColor = colors.secondary_color || colors.primary_color || '#c1b373';
+  if (colors.button_text && Math.abs(getBrightness(colors.button_text) - getBrightness(secColor)) < 50) {
+    c.btnText = getBrightness(secColor) > 165 ? '#000000' : '#FFFFFF';
+  }
 
   const getPulsing = (field: string) => focusedField === field ? "ring-4 ring-blue-500 ring-offset-2 ring-offset-transparent animate-pulse z-50 transition-all scale-105" : "";
 
